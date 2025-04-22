@@ -26,6 +26,8 @@ public class OrderEntity {
     private BigDecimal totalAmount;
     @Column(name = "payment_id")
     private Long paymentId;
+    @Column(name = "payment_card_number")
+    private String paymentCardNumber;
 
     public Long getId() {
         return id;
@@ -81,5 +83,13 @@ public class OrderEntity {
 
     public void setPaymentId(Long paymentId) {
         this.paymentId = paymentId;
+    }
+
+    public String getPaymentCardNumber() {
+        return paymentCardNumber;
+    }
+
+    public void setPaymentCardNumber(String paymentCardNumber) {
+        this.paymentCardNumber = paymentCardNumber;
     }
 }

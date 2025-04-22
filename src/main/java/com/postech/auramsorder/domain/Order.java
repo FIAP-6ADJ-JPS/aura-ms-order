@@ -12,11 +12,13 @@ public class Order {
     private String status;
     private BigDecimal totalAmount;
     private Long paymentId;
+    private String paymentCardNumber;
 
     public Order() {
     }
 
-    public Order(Long id, Long clientId, String items, LocalDateTime dtCreate, String status, BigDecimal totalAmount, Long paymentId) {
+    public Order(Long id, Long clientId, String items, LocalDateTime dtCreate, String status, BigDecimal totalAmount,
+                 Long paymentId, String paymentCardNumber) {
         this.id = id;
         this.clientId = clientId;
         this.items = items;
@@ -24,6 +26,7 @@ public class Order {
         this.status = status;
         this.totalAmount = totalAmount;
         this.paymentId = paymentId;
+        this.paymentCardNumber = paymentCardNumber;
     }
 
     public Long getId() {
@@ -82,6 +85,14 @@ public class Order {
         this.paymentId = paymentId;
     }
 
+    public String getPaymentCardNumber() {
+        return paymentCardNumber;
+    }
+
+    public void setPaymentCardNumber(String paymentCardNumber) {
+        this.paymentCardNumber = paymentCardNumber;
+    }
+
     @Override
     public String toString() {
         return "Order{" +
@@ -92,6 +103,7 @@ public class Order {
                 ", status='" + status + '\'' +
                 ", totalAmount=" + totalAmount +
                 ", paymentId=" + paymentId +
+                ", paymentCardNumber='" + paymentCardNumber + '\'' +
                 '}';
     }
 }
