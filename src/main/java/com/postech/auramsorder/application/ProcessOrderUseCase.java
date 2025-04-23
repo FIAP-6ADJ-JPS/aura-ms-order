@@ -2,19 +2,33 @@ package com.postech.auramsorder.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.postech.auramsorder.adapter.dto.RequestStockReserveDTO;
 import com.postech.auramsorder.adapter.dto.OrderRequestDTO;
+import com.postech.auramsorder.adapter.dto.RequestStockReserveDTO;
+import com.postech.auramsorder.domain.Order;
 import com.postech.auramsorder.gateway.OrderRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Slf4j
 @Service
 public class ProcessOrderUseCase {
+
+    @Value("${client.service.url}")
+    private String clientServiceUrl;
+
+    @Value("${product.service.url}")
+    private String productServiceUrl;
+
+    @Value("${stock.service.url}")
+    private String stockServiceUrl;
 
     private final OrderRepository orderRepository;
     private final ObjectMapper objectMapper;
@@ -26,11 +40,39 @@ public class ProcessOrderUseCase {
         this.restTemplate = restTemplate;
     }
 
-    public void processTest(OrderRequestDTO orderRequestDTO) {
-        if(orderRequestDTO.getClientId() == null || orderRequestDTO.getItems() == null) {
-            throw new IllegalArgumentException("Dados não podem ser nulos");
+    @Transactional
+    public void process(OrderRequestDTO orderRequestDTO) {
+        try {
+            validateOrderRequest(orderRequestDTO);
+
+            Order order = createOrderFromDTO(orderRequestDTO);
+            findClientById(orderRequestDTO.getClientId().toString());
+
+            log.info("Processando pedido para o cliente: {}", orderRequestDTO.getClientId());
+            order = orderRepository.save(order);
+            log.info("Pedido salvo com o ID: {} e status: {}", order.getId(), order.getStatus());
+
+            processOrderItems(orderRequestDTO);
+
+            order.setStatus("FECHADO_COM_SUCESSO");
+            orderRepository.save(order);
+            log.info("Pedido processado com sucesso. Status final: {}", order.getStatus());
+
+        } catch (Exception e) {
+            log.error("Erro ao processar o pedido: {}", e.getMessage(), e);
+            throw new RuntimeException("Falha ao processar o pedido", e);
         }
-        findClientById(orderRequestDTO.getClientId().toString());
+    }
+
+    private void validateOrderRequest(OrderRequestDTO orderRequestDTO) {
+        Optional.ofNullable(orderRequestDTO.getClientId())
+                .orElseThrow(() -> new IllegalArgumentException("ID do cliente não pode ser nulo"));
+        Optional.ofNullable(orderRequestDTO.getItems())
+                .filter(items -> !items.isEmpty())
+                .orElseThrow(() -> new IllegalArgumentException("Itens do pedido não podem ser nulos ou vazios"));
+    }
+
+    private void processOrderItems(OrderRequestDTO orderRequestDTO) {
         for (RequestStockReserveDTO item : orderRequestDTO.getItems()) {
             findProductBySku(item.getSku());
             findProductInStock(item);
@@ -38,7 +80,7 @@ public class ProcessOrderUseCase {
     }
 
     private void findClientById(String clientId) {
-        String url = "http://localhost:8004/api/v1/clients/" + clientId;
+        String url = clientServiceUrl + clientId;
         try {
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
             log.info("Cliente encontrado: {}", response);
@@ -49,7 +91,7 @@ public class ProcessOrderUseCase {
     }
 
     private void findProductBySku(String sku) {
-        String url = "http://localhost:8003/api/v1/products/" + sku;
+        String url = productServiceUrl + sku;
         try {
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
             log.info("Produto encontrado: {}", response);
@@ -60,14 +102,13 @@ public class ProcessOrderUseCase {
     }
 
     private void findProductInStock(RequestStockReserveDTO itemDTO) {
-
-        String url = "http://localhost:8005/api/v1/stocks/new-reserve";
+        String url = stockServiceUrl + itemDTO.getSku();
         try {
             log.info("Enviando dados para o estoque: {}", objectMapper.writeValueAsString(itemDTO));
             ResponseEntity<String> response = restTemplate.postForEntity(url, itemDTO, String.class);
             log.info("Resposta do estoque: {}", response.getBody());
         } catch (JsonProcessingException e) {
-            log.error("Erro ao serializar o objeto OrderItemDTO: {}", e.getMessage(), e);
+            log.error("Erro ao serializar o objeto RequestStockReserveDTO: {}", e.getMessage(), e);
             throw new RuntimeException("Erro ao processar os dados do produto", e);
         } catch (Exception e) {
             log.error("Erro ao buscar produto no estoque: {}", e.getMessage(), e);
@@ -75,67 +116,26 @@ public class ProcessOrderUseCase {
         }
     }
 
+    private Order createOrderFromDTO(OrderRequestDTO dto) throws JsonProcessingException {
+        Order order = new Order();
+        order.setClientId(dto.getClientId());
+        order.setDtCreate(LocalDateTime.now());
+        order.setStatus("ABERTO");
 
-//    @Transactional
-//    public void process(OrderRequestDTO orderRequestDTO) {
-//        log.info("Processando pedido para o cliente: {}", orderRequestDTO.getClientId());
-//
-//        try {
-//            // Converter os dados recebidos para o domínio da Order
-//            Order order = createOrderFromDTO(orderRequestDTO);
-//
-//            // Salvar o pedido inicialmente como "ABERTO"
-//            order = orderRepository.save(order);
-//
-//            log.info("Pedido salvo com o ID: {} e status: {}", order.getId(), order.getStatus());
-//
-//            // Em um cenário completo, aqui você chamaria os outros serviços:
-//            // 1. Chamar serviço de client para verificar se existe e está cadastrado
-//            findClientById(orderRequestDTO.getClientId().toString());
-//            // 2. Chamar serviço de estoque para verificar disponibilidade
-//            // 2. Chamar serviço de pagamento para processar o pagamento
-//            // 3. Atualizar o status da ordem com base na resposta
-//
-//            // Para este exemplo, vamos considerar que tudo deu certo
-//            order.setStatus("FECHADO_COM_SUCESSO");
-//            orderRepository.save(order);
-//
-//            log.info("Pedido processado com sucesso. Status final: {}", order.getStatus());
-//
-//        } catch (Exception e) {
-//            log.error("Erro ao processar o pedido: {}", e.getMessage(), e);
-//            throw new RuntimeException("Falha ao processar o pedido", e);
-//        }
-//    }
+        String itemsJson = objectMapper.writeValueAsString(dto.getItems());
+        order.setItems(itemsJson);
 
-//    private Order createOrderFromDTO(OrderRequestDTO dto) throws JsonProcessingException {
-//        Order order = new Order();
-//        order.setClientId(dto.getClientId());
-//        order.setDtCreate(LocalDateTime.now());
-//        order.setStatus("ABERTO");
-//
-//        // Convertendo itens para JSON para salvar na coluna items_json
-//        String itemsJson = objectMapper.writeValueAsString(dto.getItems());
-//        order.setItems(itemsJson);
-//
-//        // Em um cenário real, você buscaria o preço de cada produto
-//        // e calcularia o valor total. Aqui usamos um valor fixo para demonstração.
-//        BigDecimal totalAmount = calculateTotalAmount(dto);
-//        order.setTotalAmount(totalAmount);
-//
-//        // Armazenar o número do cartão (em produção, seria necessário criptografar)
-//        order.setPaymentCardNumber(dto.getPaymentData().getCreditCardNumber());
-//
-//        return order;
-//    }
+        BigDecimal totalAmount = calculateTotalAmount(dto);
+        order.setTotalAmount(totalAmount);
 
-//    private BigDecimal calculateTotalAmount(OrderRequestDTO dto) {
-//        // Simulando o cálculo - em uma implementação real, você buscaria
-//        // o preço de cada produto no microserviço de produtos
-//        return dto.getItems().stream()
-//                .map(item -> new BigDecimal(item.getQuantity() * 100)) // Preço fictício de 100 por unidade
-//                .reduce(BigDecimal.ZERO, BigDecimal::add);
-//    }
+        order.setPaymentCardNumber(dto.getPaymentData().getCreditCardNumber());
 
+        return order;
+    }
 
+    private BigDecimal calculateTotalAmount(OrderRequestDTO dto) {
+        return dto.getItems().stream()
+                .map(item -> new BigDecimal(item.getQuantity() * 100))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 }
