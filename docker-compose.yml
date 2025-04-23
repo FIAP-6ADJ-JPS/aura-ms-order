@@ -31,6 +31,37 @@ services:
     networks:
       - aura_network
 
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack-consumer
+    ports:
+      - "4567:4566" # Porta para acessar os serviços da AWS
+    environment:
+      - SERVICES=sqs
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - "./localstack:/var/lib/localstack"
+    networks:
+      - aura_network
+  init-sqs-consumer:
+    image: amazon/aws-cli:latest
+    container_name: init-sqs
+    depends_on:
+      - localstack
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+    entrypoint: /bin/sh -c
+    command: >
+      "
+        sleep 10
+        aws --endpoint-url=http://localstack:4566 sqs create-queue --queue-name new-order-queue
+        aws --endpoint-url=http://localstack:4566 sqs list-queues
+      "
+    networks:
+      - aura_network
+
 networks:
   aura_network:
     driver: bridge

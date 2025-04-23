@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+
 @Slf4j
 @Service
 public class ProcessOrderUseCase {
@@ -29,12 +31,10 @@ public class ProcessOrderUseCase {
             throw new IllegalArgumentException("Dados não podem ser nulos");
         }
         findClientById(orderRequestDTO.getClientId().toString());
-        //refatorar para pegar todos skus e refatorar endpoint também
-        findProductBySku(orderRequestDTO.getItems().getSku());
-        RequestStockReserveDTO reserveDTO = new RequestStockReserveDTO();
-        reserveDTO.setSku(orderRequestDTO.getItems().getSku());
-        reserveDTO.setQuantity(orderRequestDTO.getItems().getQuantity());
-        findProductInStock(reserveDTO);
+        for (RequestStockReserveDTO item : orderRequestDTO.getItems()) {
+            findProductBySku(item.getSku());
+            findProductInStock(item);
+        }
     }
 
     private void findClientById(String clientId) {
