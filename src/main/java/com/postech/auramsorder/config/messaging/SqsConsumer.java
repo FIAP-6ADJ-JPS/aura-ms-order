@@ -78,7 +78,7 @@ public class SqsConsumer {
                             OrderRequestDTO orderRequestDTO = objectMapper.treeToValue(jsonNode, OrderRequestDTO.class);
 
                             // Processa o pedido
-                            process(orderRequestDTO);
+                            processOrderUseCase.process(orderRequestDTO);
 
                             // Remove a mensagem da fila após o processamento
                             sqsClient.deleteMessage(queueUrl, message.getReceiptHandle());
@@ -94,11 +94,4 @@ public class SqsConsumer {
         }).start();
     }
 
-    private void process(OrderRequestDTO orderRequestDTO) {
-        try {
-            processOrderUseCase.processTest(orderRequestDTO);
-        } catch (Exception e) {
-            System.err.println("Erro ao processar pedido: " + e.getMessage());
-        }
-    }
 }

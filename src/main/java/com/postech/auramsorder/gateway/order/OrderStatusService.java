@@ -1,8 +1,9 @@
-package com.postech.auramsorder.gateway;
+package com.postech.auramsorder.gateway.order;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.postech.auramsorder.adapter.dto.OrderRequestDTO;
 import com.postech.auramsorder.domain.Order;
+import com.postech.auramsorder.gateway.OrderRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
