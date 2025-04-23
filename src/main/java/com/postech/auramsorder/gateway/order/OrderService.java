@@ -11,7 +11,7 @@ import java.util.List;
 
 @Slf4j
 @Service
-public class OrderService {
+public class StockService {
 
     @Value("${stock.service.url}")
     private String stockServiceUrl;
