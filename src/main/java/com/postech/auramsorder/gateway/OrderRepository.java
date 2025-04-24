@@ -10,13 +10,12 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository {
 
-    Order save(Order order);
-    OrderEntity save_v2(OrderEntity orderEntity);
-    Optional<Order> findById(Long id);
+    OrderEntity save(OrderEntity orderEntity);
+    Optional<OrderEntity> findById(Long id);
 
-    List<Order> findAll();
+    List<OrderEntity> findAll();
 
-    List<Order> findByStatus(String status);
+    List<OrderEntity> findByStatus(String status);
 
     void deleteById(Long id);
 }

@@ -1,4 +1,4 @@
-package com.postech.auramsorder.gateway.order;
+package com.postech.auramsorder.gateway.stock;
 
 import com.postech.auramsorder.adapter.dto.RequestStockReserveDTO;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ public class StockService {
 
     private final RestTemplate restTemplate;
 
-    public OrderService(RestTemplate restTemplate) {
+    public StockService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 

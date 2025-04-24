@@ -1,7 +1,9 @@
 package com.postech.auramsorder.gateway.order;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.postech.auramsorder.adapter.dto.OrderRequestDTO;
+import com.postech.auramsorder.config.exception.OrderFailSerealizationItems;
 import com.postech.auramsorder.domain.Order;
 import com.postech.auramsorder.gateway.OrderRepository;
 import org.springframework.stereotype.Service;
@@ -28,8 +30,8 @@ public class OrderStatusService {
         try {
             String itemsJson = objectMapper.writeValueAsString(orderRequestDTO.getItems());
             order.setItems(itemsJson);
-        } catch (Exception e) {
-            throw new RuntimeException("Falha ao serealizar items do pedido", e);
+        } catch (JsonProcessingException e) {
+            throw new OrderFailSerealizationItems("Falha ao serealizar items do pedido", e.getMessage());
         }
 
         BigDecimal totalAmount = calculateTotalAmount(orderRequestDTO);

@@ -3,11 +3,11 @@ package com.postech.auramsorder.application;
 import com.postech.auramsorder.adapter.dto.OrderRequestDTO;
 import com.postech.auramsorder.domain.Order;
 import com.postech.auramsorder.gateway.OrderRepository;
-import com.postech.auramsorder.gateway.order.OrderService;
 import com.postech.auramsorder.gateway.order.OrderStatusService;
 import com.postech.auramsorder.gateway.client.ClientService;
 import com.postech.auramsorder.gateway.payment.PaymentService;
 import com.postech.auramsorder.gateway.product.ProductService;
+import com.postech.auramsorder.gateway.stock.StockService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,15 +19,17 @@ public class ProcessOrderUseCase {
     private final OrderRepository orderRepository;
     private final ClientService clientService;
     private final ProductService productService;
-    private final OrderService orderService;
+    private final StockService stockService;
     private final PaymentService paymentService;
     private final OrderStatusService orderStatusService;
 
-    public ProcessOrderUseCase(OrderRepository orderRepository, ClientService clientService, ProductService productService, OrderService orderService, PaymentService paymentService, OrderStatusService orderStatusService) {
+    public ProcessOrderUseCase(OrderRepository orderRepository, ClientService clientService,
+                               ProductService productService, StockService stockService,
+                               PaymentService paymentService, OrderStatusService orderStatusService) {
         this.orderRepository = orderRepository;
         this.clientService = clientService;
         this.productService = productService;
-        this.orderService = orderService;
+        this.stockService = stockService;
         this.paymentService = paymentService;
         this.orderStatusService = orderStatusService;
     }
@@ -42,7 +44,7 @@ public class ProcessOrderUseCase {
             clientService.verifyClient(orderRequestDTO.getClientId());
 
             // Verificar produtos e estoque
-            boolean stockAvailable = orderService.reserveStock(orderRequestDTO.getItems());
+            boolean stockAvailable = stockService.reserveStock(orderRequestDTO.getItems());
 
             if (!stockAvailable) {
                 orderStatusService.markAsClosedOutOfStock(order);
@@ -52,7 +54,7 @@ public class ProcessOrderUseCase {
             boolean paymentSuccessful = paymentService.processPayment(order);
 
             if (!paymentSuccessful) {
-                orderService.releaseStock(orderRequestDTO.getItems());
+                stockService.releaseStock(orderRequestDTO.getItems());
                 orderStatusService.markAsClosedOutOfCredit(order);
                 return;
             }
@@ -67,7 +69,7 @@ public class ProcessOrderUseCase {
 
     private void handleFailure(Order order, OrderRequestDTO orderRequestDTO, Exception e) {
         try {
-            orderService.releaseStock(orderRequestDTO.getItems());
+            stockService.releaseStock(orderRequestDTO.getItems());
             paymentService.refundIfNecessary(order);
             orderStatusService.markAsError(order, e.getMessage());
         } catch (Exception exceptionInHandling) {
