@@ -1,5 +1,6 @@
 package com.postech.auramsorder.gateway.client;
 
+import com.postech.auramsorder.adapter.dto.ClientDTO;
 import com.postech.auramsorder.config.exception.ClientNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -17,11 +18,11 @@ public class ClientService {
         this.restTemplate = restTemplate;
     }
 
-    public boolean verifyClient(Long clientId) {
+    public ClientDTO verifyClient(Long clientId) {
         try {
-            ResponseEntity<String> response =
-                    restTemplate.getForEntity(clientServiceUrl + clientId, String.class);
-            return response.getStatusCode().is2xxSuccessful();
+            ResponseEntity<ClientDTO> response =
+                    restTemplate.getForEntity(clientServiceUrl + clientId, ClientDTO.class);
+            return response.getBody();
         } catch (Exception e) {
             throw new ClientNotFoundException("Cliente nao encontradp: " + clientId);
         }

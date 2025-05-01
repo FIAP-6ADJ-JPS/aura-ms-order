@@ -44,6 +44,10 @@ public class SqsConsumer {
 
     @PostConstruct
     public void startListening() {
+        if (!Boolean.parseBoolean(System.getProperty("sqs.listener.enabled", "false"))) {
+            System.out.println("SQS Listener está desativado.");
+            return;
+        }
         BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKey, secretKey);
 
         AmazonSQS sqsClient = AmazonSQSClientBuilder.standard()

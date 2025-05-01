@@ -1,6 +1,7 @@
 package com.postech.auramsorder.adapter.controller;
 
 import com.postech.auramsorder.adapter.dto.OrderRequestDTO;
+import com.postech.auramsorder.adapter.dto.OrderResponseDTO;
 import com.postech.auramsorder.application.ProcessOrderUseCase;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,8 +16,7 @@ public class OrderController {
     }
 
     @PostMapping("/new-solicitation")
-    public boolean clientExist(@RequestBody OrderRequestDTO orderRequestDTO) {
-        processOrderUseCase.processTest(orderRequestDTO);
-        return true;
+    public OrderResponseDTO clientExist(@RequestBody OrderRequestDTO orderRequestDTO) {
+        return processOrderUseCase.process(orderRequestDTO);
     }
 }

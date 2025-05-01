@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "ms_order")
@@ -18,16 +19,18 @@ public class OrderEntity {
     private Long id;
     @Column(name = "client_id")
     private Long clientId;
+    @Lob
+    @Column(name = "items", columnDefinition = "jsonb")
     private String items;
     @Column(name = "dt_create")
     private LocalDateTime dtCreate;
     private String status;
     @Column(name = "total_amount")
     private BigDecimal totalAmount;
-    @Column(name = "payment_id")
-    private Long paymentId;
     @Column(name = "payment_card_number")
     private String paymentCardNumber;
+    @Column(name = "number_of_order")
+    private UUID numerOfOrder;
 
     public Long getId() {
         return id;
@@ -77,14 +80,6 @@ public class OrderEntity {
         this.totalAmount = totalAmount;
     }
 
-    public Long getPaymentId() {
-        return paymentId;
-    }
-
-    public void setPaymentId(Long paymentId) {
-        this.paymentId = paymentId;
-    }
-
     public String getPaymentCardNumber() {
         return paymentCardNumber;
     }
@@ -92,4 +87,8 @@ public class OrderEntity {
     public void setPaymentCardNumber(String paymentCardNumber) {
         this.paymentCardNumber = paymentCardNumber;
     }
+
+    public UUID getNumerOfOrder() { return numerOfOrder; }
+
+    public void setNumerOfOrder(UUID numerOfOrder) { this.numerOfOrder = numerOfOrder; }
 }

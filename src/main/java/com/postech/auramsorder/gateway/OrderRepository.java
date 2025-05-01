@@ -1,6 +1,5 @@
 package com.postech.auramsorder.gateway;
 
-import com.postech.auramsorder.domain.Order;
 import com.postech.auramsorder.gateway.database.jpa.entity.OrderEntity;
 import org.springframework.stereotype.Repository;
 
@@ -11,6 +10,7 @@ import java.util.Optional;
 public interface OrderRepository {
 
     OrderEntity save(OrderEntity orderEntity);
+
     Optional<OrderEntity> findById(Long id);
 
     List<OrderEntity> findAll();

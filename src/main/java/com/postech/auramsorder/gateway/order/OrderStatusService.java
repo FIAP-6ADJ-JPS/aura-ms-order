@@ -6,7 +6,10 @@ import com.postech.auramsorder.adapter.dto.OrderRequestDTO;
 import com.postech.auramsorder.config.exception.OrderFailSerealizationItems;
 import com.postech.auramsorder.domain.Order;
 import com.postech.auramsorder.gateway.OrderRepository;
+import com.postech.auramsorder.gateway.database.jpa.entity.OrderEntity;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,12 +18,15 @@ import java.time.LocalDateTime;
 public class OrderStatusService {
     private final OrderRepository orderRepository;
     private final ObjectMapper objectMapper;
+    private final ModelMapper modelMapper;
 
-    public OrderStatusService(OrderRepository orderRepository, ObjectMapper objectMapper) {
+    public OrderStatusService(OrderRepository orderRepository, ObjectMapper objectMapper, ModelMapper modelMapper) {
         this.orderRepository = orderRepository;
         this.objectMapper = objectMapper;
+        this.modelMapper = modelMapper;
     }
 
+    @Transactional
     public Order createOpenOrder(OrderRequestDTO orderRequestDTO) {
         Order order = new Order();
         order.setClientId(orderRequestDTO.getClientId());
@@ -40,30 +46,10 @@ public class OrderStatusService {
         if (orderRequestDTO.getPaymentData() != null) {
             order.setPaymentCardNumber(orderRequestDTO.getPaymentData().getCreditCardNumber());
         }
-
-        return orderRepository.save(order);
+        OrderEntity entityToSave = modelMapper.map(order, OrderEntity.class);
+        orderRepository.save(entityToSave);
+        return modelMapper.map(entityToSave, Order.class);
     }
-
-    public void markAsSuccessfullyClosed(Order order) {
-        order.setStatus("FECHADO_COM_SUCESSO");
-        orderRepository.save(order);
-    }
-
-    public void markAsClosedOutOfStock(Order order) {
-        order.setStatus("FECHADO_SEM_ESTOQUE");
-        orderRepository.save(order);
-    }
-
-    public void markAsClosedOutOfCredit(Order order) {
-        order.setStatus("FECHADO_SEM_CREDITO");
-        orderRepository.save(order);
-    }
-
-    public void markAsError(Order order, String errorMessage) {
-        order.setStatus("ERRO");
-        orderRepository.save(order);
-    }
-
 
     private BigDecimal calculateTotalAmount(OrderRequestDTO dto) {
         return dto.getItems().stream()
