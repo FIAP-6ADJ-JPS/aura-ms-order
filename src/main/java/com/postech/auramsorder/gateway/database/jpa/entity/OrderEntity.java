@@ -1,9 +1,11 @@
 package com.postech.auramsorder.gateway.database.jpa.entity;
 
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
-
+import org.hibernate.annotations.Type;
+import com.vladmihalcea.hibernate.type.json.JsonType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -21,6 +23,7 @@ public class OrderEntity {
     private Long clientId;
     @Lob
     @Column(name = "items", columnDefinition = "jsonb")
+    @Type(value = JsonType.class)
     private String items;
     @Column(name = "dt_create")
     private LocalDateTime dtCreate;
