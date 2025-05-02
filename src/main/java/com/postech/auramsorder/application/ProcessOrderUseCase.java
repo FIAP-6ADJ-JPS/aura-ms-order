@@ -56,7 +56,25 @@ public class ProcessOrderUseCase {
     @Transactional
     public OrderResponseDTO process(OrderRequestDTO orderRequestDTO) {
         Order order = new Order();
+        order.setClientId(orderRequestDTO.getClientId());
+        order.setDtCreate(LocalDateTime.now());
+        order.setStatus("ABERTO");
+
+
+        try {
+            String itemsJson = objectMapper.writeValueAsString(orderRequestDTO.getItems());
+            order.setItems(itemsJson);
+        } catch (JsonProcessingException e) {
+            throw new FailProcessNewOrderException("Falha ao serializar itens do pedido", e.getMessage());
+        }
+
+
+        if (orderRequestDTO.getPaymentData() != null) {
+            order.setPaymentCardNumber(orderRequestDTO.getPaymentData().getCreditCardNumber());
+        }
+
         OrderEntity orderEntity = modelMapper.map(order, OrderEntity.class);
+        orderEntity.setNumerOfOrder(UUID.randomUUID());
 
         try {
             ClientDTO clientDTO = clientService.verifyClient(orderRequestDTO.getClientId());
@@ -72,7 +90,7 @@ public class ProcessOrderUseCase {
             if (!stockAvailable) {
                 orderEntity.setStatus("FECHADO_SEM_ESTOQUE");
                 orderRepository.save(orderEntity);
-                return createOrderResponse(orderEntity, clientDTO, "FECHADO_SEM_ESTOQUE");
+                return createOrderResponse(orderEntity, clientDTO, orderRequestDTO.getItems());
             }
 
             boolean paymentSuccessful = paymentService.processPayment(modelMapper.map(orderEntity, Order.class));
@@ -80,13 +98,13 @@ public class ProcessOrderUseCase {
                 stockService.releaseStock(orderRequestDTO.getItems());
                 orderEntity.setStatus("FECHADO_SEM_CREDITO");
                 orderRepository.save(orderEntity);
-                return createOrderResponse(orderEntity, clientDTO, "FECHADO_SEM_CREDITO");
+                return createOrderResponse(orderEntity, clientDTO, orderRequestDTO.getItems());
             }
 
             orderEntity.setStatus("FECHADO_COM_SUCESSO");
             orderRepository.save(orderEntity);
 
-            return createOrderResponse(orderEntity, clientDTO, "FECHADO_COM_SUCESSO");
+            return createOrderResponse(orderEntity, clientDTO, orderRequestDTO.getItems());
 
         } catch (Exception e) {
             handleFailure(modelMapper.map(orderEntity, Order.class), orderRequestDTO, e);
@@ -94,21 +112,16 @@ public class ProcessOrderUseCase {
         }
     }
 
-    private OrderResponseDTO createOrderResponse(OrderEntity orderEntity, ClientDTO clientDTO, String status) {
+    private OrderResponseDTO createOrderResponse(OrderEntity orderEntity, ClientDTO clientDTO,
+                                                 List<RequestStockReserveDTO> items) {
         OrderResponseDTO response = new OrderResponseDTO();
         response.setTotalAmount(orderEntity.getTotalAmount());
-        response.setStatus(status);
-        response.setItems(mapOrderItems(orderEntity));
+        response.setStatus(orderEntity.getStatus());
+        response.setItems(items);
         response.setFullName(clientDTO.getFirstName() + " " + clientDTO.getLastName());
-        response.setNumberOfOrder(orderEntity.getNumerOfOrder() != null ? orderEntity.getNumerOfOrder() : UUID.randomUUID());
-        response.setDtOrder(LocalDateTime.now());
+        response.setNumberOfOrder(orderEntity.getNumerOfOrder());
+        response.setDtOrder(orderEntity.getDtCreate() != null ? orderEntity.getDtCreate() : LocalDateTime.now());
         return response;
-    }
-
-    private List<RequestStockReserveDTO> mapOrderItems(OrderEntity orderEntity) {
-        return List.of(orderEntity.getItems().split(",")).stream()
-                .map(item -> modelMapper.map(item.trim(), RequestStockReserveDTO.class))
-                .collect(Collectors.toList());
     }
 
     private void handleFailure(Order order, OrderRequestDTO orderRequestDTO, Exception e) {
@@ -125,7 +138,6 @@ public class ProcessOrderUseCase {
             log.error("Falha ao gerar pedido {}: {}", order.getId(), exceptionInHandling.getMessage());
         }
     }
-
 
 }
 
