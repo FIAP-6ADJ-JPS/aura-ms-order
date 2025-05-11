@@ -44,7 +44,7 @@ public class SqsConsumer {
 
     @PostConstruct
     public void startListening() {
-        if (!Boolean.parseBoolean(System.getProperty("sqs.listener.enabled", "false"))) {
+        if (!Boolean.parseBoolean(System.getProperty("sqs.listener.enabled", "true"))) {
             System.out.println("SQS Listener está desativado.");
             return;
         }

@@ -90,14 +90,17 @@ public class ProcessOrderUseCase {
             orderEntity.setTotalAmount(totalOrderValue);
 
             boolean stockAvailable = stockService.reserveStock(orderRequestDTO.getItems());
-            stockAvailable = false; // Simulação de falha na reserva de estoque
+
             if (!stockAvailable) {
                 orderEntity.setStatus("FECHADO_SEM_ESTOQUE");
                 orderRepository.save(orderEntity);
                 return createOrderResponse(orderEntity, clientDTO, orderRequestDTO.getItems());
             }
+            orderEntity.setStatus("PENDENTE_PAGAMENTO");
+            orderRepository.save(orderEntity);
 
             Order orderForPayment = new Order();
+            orderForPayment.setId(orderEntity.getId());
             orderForPayment.setClientId(orderEntity.getClientId());
             orderForPayment.setItems(orderEntity.getItems());
             orderForPayment.setDtCreate(orderEntity.getDtCreate());
@@ -106,7 +109,7 @@ public class ProcessOrderUseCase {
             orderForPayment.setPaymentCardNumber(orderEntity.getPaymentCardNumber());
 
             boolean paymentSuccessful = paymentService.processPayment(orderForPayment);
-            paymentSuccessful = true; // Simulação de pagamento bem-sucedido
+
             if (!paymentSuccessful) {
                 stockService.releaseStock(orderRequestDTO.getItems());
                 orderEntity.setStatus("FECHADO_SEM_CREDITO");
@@ -151,7 +154,7 @@ public class ProcessOrderUseCase {
     private void handleFailure(Order order, OrderRequestDTO orderRequestDTO, Exception e) {
         try {
             stockService.releaseStock(orderRequestDTO.getItems());
-            paymentService.refundIfNecessary(order);
+            paymentService.refusedIfNecessary(order);
 
             OrderEntity orderEntity = modelMapper.map(order, OrderEntity.class);
             orderEntity.setStatus("ERRO");
